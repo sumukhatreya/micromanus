@@ -1,0 +1,20 @@
+# Secrets — never commit real env files (.env.example is tracked)
+.env
+**/.env
+!.env.example
+!**/.env.example
+
+# Python / uv
+.venv/
+__pycache__/
+*.py[cod]
+
+# Node / Vite
+node_modules/
+dist/
+*.local
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
