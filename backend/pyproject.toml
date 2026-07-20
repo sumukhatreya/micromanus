@@ -4,7 +4,10 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.13"
 dependencies = [
+    "certifi>=2024.8.30",
     "fastapi>=0.139.2",
     "pydantic-settings>=2.14.2",
+    "pyjwt[crypto]>=2.10.1",
+    "supabase>=2.15.0",
     "uvicorn[standard]>=0.51.0",
 ]

@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.routes import me
 
 app = FastAPI(title="MicroManus API")
 
@@ -25,3 +26,6 @@ app.add_middleware(
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+app.include_router(me.router)
