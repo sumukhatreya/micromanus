@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routes import me, paywall
+from app.routes import keys, me, models, paywall
 
 app = FastAPI(title="MicroManus API")
 
@@ -30,3 +30,5 @@ def health():
 
 app.include_router(me.router)
 app.include_router(paywall.router)
+app.include_router(models.router)
+app.include_router(keys.router)

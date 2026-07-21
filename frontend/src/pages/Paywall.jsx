@@ -18,7 +18,7 @@ function errorDetail(err, fallback) {
 }
 
 export default function Paywall() {
-  const { profile, refreshProfile, signOut } = useAuth()
+  const { profile, refreshProfile } = useAuth()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -112,20 +112,6 @@ export default function Paywall() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900">
-      <header className="border-b border-gray-200 bg-white">
-        <nav className="mx-auto flex max-w-4xl items-center px-6 py-4 text-sm">
-          <span className="font-semibold">MicroManus</span>
-          <button
-            onClick={signOut}
-            disabled={polling}
-            className="ml-auto text-gray-500 hover:text-gray-900 disabled:opacity-60"
-          >
-            Sign out
-          </button>
-        </nav>
-      </header>
-
       <main className="mx-auto max-w-2xl px-6 py-16">
         <h1 className="text-2xl font-semibold">Unlock MicroManus</h1>
         <p className="mt-2 text-gray-500">
@@ -188,6 +174,5 @@ export default function Paywall() {
           </div>
         </div>
       </main>
-    </div>
   )
 }

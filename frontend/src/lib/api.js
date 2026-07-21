@@ -22,6 +22,7 @@ export async function apiFetch(path, options = {}) {
     const body = await res.text()
     throw new Error(`API ${res.status}: ${body}`)
   }
+  if (res.status === 204) return null
   return res.json()
 }
 

@@ -1,19 +1,17 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from './lib/AuthContext'
 import RequireAuth from './components/RequireAuth'
+import NavBar from './components/NavBar'
 import Login from './pages/Login'
 import Paywall from './pages/Paywall'
 import Chat from './pages/Chat'
 import Settings from './pages/Settings'
 import Stats from './pages/Stats'
 
-// Where a signed-in user belongs: the app if unlocked, else the paywall.
 function homeForProfile(profile) {
   return profile?.unlocked ? '/chat' : '/paywall'
 }
 
-// `/` and `/login`: send an already-authenticated user onward instead of
-// showing the login screen again.
 function EntryRedirect({ children }) {
   const { session, profile, loading } = useAuth()
   if (loading) {
@@ -25,6 +23,15 @@ function EntryRedirect({ children }) {
   }
   if (session) return <Navigate to={homeForProfile(profile)} replace />
   return children
+}
+
+function AppLayout() {
+  return (
+    <div className="min-h-screen bg-gray-50 text-gray-900">
+      <NavBar />
+      <Outlet />
+    </div>
+  )
 }
 
 export default function App() {
@@ -47,38 +54,40 @@ export default function App() {
             </EntryRedirect>
           }
         />
-        <Route
-          path="/paywall"
-          element={
-            <RequireAuth requireUnlocked={false}>
-              <Paywall />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/chat"
-          element={
-            <RequireAuth>
-              <Chat />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <RequireAuth>
-              <Settings />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/stats"
-          element={
-            <RequireAuth>
-              <Stats />
-            </RequireAuth>
-          }
-        />
+        <Route element={<AppLayout />}>
+          <Route
+            path="/paywall"
+            element={
+              <RequireAuth requireUnlocked={false}>
+                <Paywall />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/chat"
+            element={
+              <RequireAuth>
+                <Chat />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <RequireAuth>
+                <Settings />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/stats"
+            element={
+              <RequireAuth>
+                <Stats />
+              </RequireAuth>
+            }
+          />
+        </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
