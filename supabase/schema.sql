@@ -64,6 +64,14 @@ create table if not exists coupon_redemptions (
   redeemed_at timestamptz default now()
 );
 
+-- stripe_events: webhook idempotency ledger (PLAN.md §B3). Stripe retries event
+-- delivery, so each processed event id is recorded here; a re-delivered event
+-- hits the primary-key conflict and is skipped instead of adding credits twice.
+create table if not exists stripe_events (
+  id text primary key,             -- stripe event id (evt_...)
+  processed_at timestamptz default now()
+);
+
 -- ---------------------------------------------------------------------------
 -- Row Level Security
 -- Enable RLS with NO policies on every table. This denies the public `anon` and
@@ -78,6 +86,7 @@ alter table threads            enable row level security;
 alter table messages           enable row level security;
 alter table usage_logs         enable row level security;
 alter table coupon_redemptions enable row level security;
+alter table stripe_events      enable row level security;
 
 -- ---------------------------------------------------------------------------
 -- Profile auto-provisioning trigger

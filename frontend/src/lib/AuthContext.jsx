@@ -22,7 +22,6 @@ export function AuthProvider({ children }) {
       setProfile(me)
     } catch (err) {
       // Keep the user gated (treated as locked) rather than crashing the app.
-      console.error('Failed to load profile:', err)
       setProfile(null)
     }
   }, [])
@@ -63,10 +62,11 @@ export function AuthProvider({ children }) {
 
   const signOut = useCallback(() => supabase.auth.signOut(), [])
 
-  const refreshProfile = useCallback(
-    () => loadProfile(session),
-    [loadProfile, session],
-  )
+  const refreshProfile = useCallback(async () => {
+    const { data: { session: s } } = await supabase.auth.getSession()
+    await loadProfile(s)
+  }, [loadProfile])
+
 
   const value = {
     session,
