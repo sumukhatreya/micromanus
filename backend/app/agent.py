@@ -38,8 +38,9 @@ relied on inline.
 
 Reports:
 - When the user asks for a report, document, or something downloadable, call \
-create_pdf_report with a descriptive title and the full report in Markdown, \
-then tell the user their PDF is ready.
+create_pdf_report with a descriptive title and the full report in Markdown. \
+A download button appears automatically — do NOT include any URL or link to \
+the PDF in your response. Just tell the user the report is ready.
 
 Style: be concise and direct for simple questions; be thorough and organized \
 for research questions. Always ground claims in your search results."""
@@ -63,11 +64,19 @@ def _build_history(thread_id: str) -> list[dict]:
     return history
 
 
-def _insert_message(thread_id: str, role: str, content: str, artifact_url: str | None = None) -> dict:
+def _insert_message(
+    thread_id: str,
+    role: str,
+    content: str,
+    artifact_url: str | None = None,
+    artifact_title: str | None = None,
+) -> dict:
     supabase = get_supabase()
     payload = {"thread_id": thread_id, "role": role, "content": content}
     if artifact_url:
         payload["artifact_url"] = artifact_url
+    if artifact_title:
+        payload["artifact_title"] = artifact_title
     res = supabase.table("messages").insert(payload).execute()
     return res.data[0]
 
@@ -89,6 +98,18 @@ def _log_usage(user_id: str, thread_id: str, model: str, usage) -> None:
     ).execute()
 
 
+def _is_cancelled(thread_id: str) -> bool:
+    supabase = get_supabase()
+    res = (
+        supabase.table("threads")
+        .select("cancelled")
+        .eq("id", thread_id)
+        .limit(1)
+        .execute()
+    )
+    return bool(res.data and res.data[0].get("cancelled"))
+
+
 def run_agent(user_id: str, thread_id: str, active: ActiveKey, client) -> dict:
     """Run one full agent turn for the latest user message in `thread_id`.
 
@@ -98,8 +119,15 @@ def run_agent(user_id: str, thread_id: str, active: ActiveKey, client) -> dict:
     """
     llm_messages = [{"role": "system", "content": SYSTEM_PROMPT}] + _build_history(thread_id)
     last_artifact_url: str | None = None
+    last_artifact_title: str | None = None
+
+    interrupted = False
 
     for _ in range(MAX_ITER):
+        if _is_cancelled(thread_id):
+            interrupted = True
+            break
+
         completion = client.chat.completions.create(
             model=active.model,
             messages=llm_messages,
@@ -120,8 +148,11 @@ def run_agent(user_id: str, thread_id: str, active: ActiveKey, client) -> dict:
         tool_calls = getattr(choice, "tool_calls", None)
 
         if not tool_calls:
+            if _is_cancelled(thread_id):
+                interrupted = True
+                break
             content = choice.content or "I wasn't able to produce an answer."
-            return _insert_message(thread_id, "assistant", content, last_artifact_url)
+            return _insert_message(thread_id, "assistant", content, last_artifact_url, last_artifact_title)
 
         # Append the assistant tool-call message BEFORE the tool results.
         llm_messages.append(
@@ -143,20 +174,24 @@ def run_agent(user_id: str, thread_id: str, active: ActiveKey, client) -> dict:
         )
 
         for tc in tool_calls:
+            if _is_cancelled(thread_id):
+                interrupted = True
+                break
+
             name = tc.function.name
             try:
                 arguments = json.loads(tc.function.arguments or "{}")
             except json.JSONDecodeError:
                 arguments = {}
 
-            # Persist a tool_event so the polling UI can show the step live.
             _insert_message(
                 thread_id, "tool_event", json.dumps(tool_event_payload(name, arguments))
             )
 
-            result_text, artifact_url = execute_tool(name, arguments, user_id)
+            result_text, artifact_url, artifact_title = execute_tool(name, arguments, user_id)
             if artifact_url:
                 last_artifact_url = artifact_url
+                last_artifact_title = artifact_title
 
             llm_messages.append(
                 {
@@ -166,7 +201,17 @@ def run_agent(user_id: str, thread_id: str, active: ActiveKey, client) -> dict:
                 }
             )
 
-    # Ran out of iterations without a final answer — persist what we can.
+        if interrupted:
+            break
+
+    if interrupted:
+        get_supabase().table("threads").update({"cancelled": False}).eq("id", thread_id).execute()
+        return _insert_message(
+            thread_id,
+            "error",
+            "Search was interrupted — please try again.",
+        )
+
     logger.warning("Agent hit MAX_ITER for thread %s", thread_id)
     return _insert_message(
         thread_id,
@@ -174,4 +219,5 @@ def run_agent(user_id: str, thread_id: str, active: ActiveKey, client) -> dict:
         "I ran several research steps but couldn't finish within the step limit. "
         "Please try narrowing the question.",
         last_artifact_url,
+        last_artifact_title,
     )

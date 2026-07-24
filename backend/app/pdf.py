@@ -7,6 +7,7 @@ system dependencies, so it works identically on the laptop and on Railway.
 """
 
 import io
+import unicodedata
 
 import markdown
 
@@ -28,9 +29,51 @@ code { font-family: Courier, monospace; font-size: 9.5pt; background: #f3f4f6; }
 pre { font-family: Courier, monospace; font-size: 9.5pt; background: #f3f4f6; padding: 8pt; }
 blockquote { margin: 0 0 8pt; padding-left: 10pt; border-left: 3px solid #d1d5db; color: #4b5563; }
 hr { border: none; border-top: 1px solid #e5e7eb; }
+table { border-collapse: collapse; width: 100%; margin: 0 0 10pt; }
+th, td { border: 0.5pt solid #d1d5db; padding: 4pt 6pt; text-align: left; font-size: 10pt; }
+th { background-color: #f3f4f6; font-weight: bold; }
 .title { font-size: 22pt; font-weight: bold; margin-bottom: 2pt; }
 .subtitle { color: #6b7280; font-size: 9pt; margin-bottom: 18pt; }
 """
+
+# The base-14 Helvetica face xhtml2pdf uses encodes to WinAnsi (cp1252). Anything
+# outside that — emoji, arrows, CJK — renders as a black ■ box, which looks
+# broken in a report the user is meant to hand around. Models reach for these
+# constantly (→ in bullets, ✅ in checklists, ≈ in figures), so map the common
+# ones to ASCII equivalents and drop whatever is left over.
+_CHAR_REPLACEMENTS = {
+    "→": "->", "←": "<-", "↔": "<->", "⇒": "=>", "⇐": "<=",
+    "↑": "up", "↓": "down", "↗": "up", "↘": "down",
+    "≈": "~", "≠": "!=", "≤": "<=", "≥": ">=", "×": "x", "÷": "/",
+    "≡": "=", "∞": "infinity", "√": "sqrt", "∑": "sum", "∆": "delta",
+    "✅": "[x]", "✔": "[x]", "☑": "[x]", "❌": "[ ]", "✗": "[ ]", "☐": "[ ]",
+    "•": "-", "‣": "-", "▪": "-", "●": "-", "○": "-", "–": "-", "—": "-",
+    "…": "...", "′": "'", "″": '"', "‘": "'", "’": "'", "“": '"', "”": '"',
+}
+
+
+def _sanitize(text: str) -> str:
+    """Make text safe for the Helvetica/WinAnsi encoder.
+
+    Replaces well-known symbols with ASCII, strips accents off anything else
+    that cp1252 can't hold, and drops the remainder (emoji, CJK) rather than
+    letting it render as ■. Only non-cp1252 characters are touched, so ASCII
+    Markdown syntax passes through untouched.
+    """
+    out = []
+    for ch in text:
+        if ch in _CHAR_REPLACEMENTS:
+            out.append(_CHAR_REPLACEMENTS[ch])
+            continue
+        try:
+            ch.encode("cp1252")
+        except UnicodeEncodeError:
+            # é-style composites survive as ASCII; emoji/CJK decompose to nothing.
+            folded = unicodedata.normalize("NFKD", ch)
+            out.append("".join(c for c in folded if ord(c) < 128))
+        else:
+            out.append(ch)
+    return "".join(out)
 
 
 def render_markdown_pdf(title: str, markdown_content: str) -> bytes:
@@ -40,10 +83,10 @@ def render_markdown_pdf(title: str, markdown_content: str) -> bytes:
     surface a clean tool error to the model rather than returning a broken file.
     """
     body_html = markdown.markdown(
-        markdown_content or "",
+        _sanitize(markdown_content or ""),
         extensions=["extra", "sane_lists", "nl2br"],
     )
-    safe_title = markdown.markdown(title or "Report").strip()
+    safe_title = markdown.markdown(_sanitize(title or "Report")).strip()
     # markdown() wraps a bare title in <p>…</p>; strip that for the heading.
     if safe_title.startswith("<p>") and safe_title.endswith("</p>"):
         safe_title = safe_title[3:-4]

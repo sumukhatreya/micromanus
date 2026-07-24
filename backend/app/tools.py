@@ -94,31 +94,32 @@ def _web_search(query: str) -> str:
     return json.dumps({"query": query, "results": results})
 
 
-def _create_pdf_report(user_id: str, title: str, markdown_content: str) -> tuple[str, str | None]:
-    """Render + upload a PDF; return (message_for_model, artifact_url)."""
+def _create_pdf_report(user_id: str, title: str, markdown_content: str) -> tuple[str, str | None, str | None]:
+    """Render + upload a PDF; return (message_for_model, artifact_url, title)."""
     try:
         pdf_bytes = render_markdown_pdf(title, markdown_content)
         url = upload_pdf(user_id, pdf_bytes, title)
     except Exception as exc:
         logger.warning("create_pdf_report failed: %s", exc)
-        return json.dumps({"error": f"Could not create the PDF: {exc}"}), None
+        return json.dumps({"error": f"Could not create the PDF: {exc}"}), None, None
     return (
-        json.dumps({"status": "created", "title": title, "url": url}),
+        json.dumps({"status": "created", "title": title, "note": "A download button is automatically shown to the user. Do NOT include any URL or link in your response."}),
         url,
+        title,
     )
 
 
-def execute_tool(name: str, arguments: dict, user_id: str) -> tuple[str, str | None]:
-    """Dispatch a tool call. Returns (result_text, artifact_url_or_None)."""
+def execute_tool(name: str, arguments: dict, user_id: str) -> tuple[str, str | None, str | None]:
+    """Dispatch a tool call. Returns (result_text, artifact_url_or_None, artifact_title_or_None)."""
     if name == "web_search":
-        return _web_search(arguments.get("query", "")), None
+        return _web_search(arguments.get("query", "")), None, None
     if name == "create_pdf_report":
         return _create_pdf_report(
             user_id,
             arguments.get("title", "Report"),
             arguments.get("markdown_content", ""),
         )
-    return json.dumps({"error": f"Unknown tool: {name}"}), None
+    return json.dumps({"error": f"Unknown tool: {name}"}), None, None
 
 
 def tool_event_payload(name: str, arguments: dict) -> dict:

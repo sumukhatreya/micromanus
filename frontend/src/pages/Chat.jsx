@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useOutletContext } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { apiFetch } from '../lib/api'
+import { apiFetch, API_BASE } from '../lib/api'
 import { useAuth } from '../lib/AuthContext'
 
 // Pull FastAPI's {"detail": "..."} out of the Error apiFetch throws
@@ -58,7 +58,7 @@ function MessageItem({ msg }) {
     )
   }
 
-  // assistant
+  // assistant / error
   return (
     <div className="flex justify-start">
       <div className="max-w-[80%] rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-gray-100">
@@ -72,7 +72,7 @@ function MessageItem({ msg }) {
             rel="noreferrer"
             className="mt-3 inline-flex items-center gap-2 rounded-lg border border-gray-900 px-3 py-1.5 text-xs font-medium text-gray-900 transition hover:bg-gray-900 hover:text-white"
           >
-            ⬇ Download PDF report
+            ⬇ {msg.artifact_title || 'Download PDF report'}
           </a>
         )}
       </div>
@@ -82,12 +82,12 @@ function MessageItem({ msg }) {
 
 export default function Chat() {
   const { profile, refreshProfile } = useAuth()
+  const { agentRunning: sending, setAgentRunning: setSending } = useOutletContext()
 
   const [threads, setThreads] = useState([])
   const [currentThreadId, setCurrentThreadId] = useState(null)
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
-  const [sending, setSending] = useState(false)
   const [keysPresent, setKeysPresent] = useState(null) // null = loading
   const [error, setError] = useState(null)
 
@@ -126,8 +126,23 @@ export default function Chat() {
       .catch(() => setKeysPresent(false))
   }, [loadThreads])
 
-  // Stop polling on unmount.
-  useEffect(() => () => stopPolling(), [])
+  const sendingRef = useRef(false)
+  useEffect(() => { sendingRef.current = sending }, [sending])
+
+  const cancelRun = useCallback(() => {
+    if (sendingRef.current && threadIdRef.current) {
+      navigator.sendBeacon(`${API_BASE}/api/threads/${threadIdRef.current}/cancel`)
+    }
+  }, [])
+
+  // Cancel the backend agent + stop polling on unmount.
+  useEffect(() => () => { cancelRun(); stopPolling() }, [cancelRun])
+
+  // Also cancel if the user closes/reloads the tab.
+  useEffect(() => {
+    window.addEventListener('beforeunload', cancelRun)
+    return () => window.removeEventListener('beforeunload', cancelRun)
+  }, [cancelRun])
 
   // Auto-scroll to the newest message.
   useEffect(() => {

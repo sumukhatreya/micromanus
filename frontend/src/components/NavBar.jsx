@@ -1,12 +1,14 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../lib/AuthContext'
 
-export default function NavBar() {
+export default function NavBar({ disabled }) {
   const { session, profile, signOut } = useAuth()
   const { pathname } = useLocation()
 
-  const linkClass = (path) =>
-    pathname === path ? 'font-medium text-gray-900' : 'hover:text-gray-900'
+  const linkClass = (path) => {
+    if (disabled) return 'pointer-events-none opacity-50'
+    return pathname === path ? 'font-medium text-gray-900' : 'hover:text-gray-900'
+  }
 
   return (
     <header className="border-b border-gray-200 bg-white">
@@ -14,9 +16,9 @@ export default function NavBar() {
         <span className="font-semibold">MicroManus</span>
         {profile?.unlocked && (
           <div className="flex gap-3 text-gray-500">
-            <Link className={linkClass('/chat')} to="/chat">Chat</Link>
-            <Link className={linkClass('/settings')} to="/settings">Settings</Link>
-            <Link className={linkClass('/stats')} to="/stats">Stats</Link>
+            <Link className={linkClass('/chat')} to="/chat" tabIndex={disabled ? -1 : undefined} aria-disabled={disabled || undefined}>Chat</Link>
+            <Link className={linkClass('/settings')} to="/settings" tabIndex={disabled ? -1 : undefined} aria-disabled={disabled || undefined}>Settings</Link>
+            <Link className={linkClass('/stats')} to="/stats" tabIndex={disabled ? -1 : undefined} aria-disabled={disabled || undefined}>Stats</Link>
           </div>
         )}
         {session && (

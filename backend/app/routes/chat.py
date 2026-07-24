@@ -17,7 +17,7 @@ own returns 404, never another user's data (PLAN.md §B1 notes).
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from openai import APIError, APIConnectionError, AuthenticationError
 from pydantic import BaseModel
 
@@ -95,12 +95,28 @@ def get_messages(thread_id: str, user: CurrentUser = Depends(get_current_user)):
     _get_owned_thread(supabase, thread_id, user.user_id)
     res = (
         supabase.table("messages")
-        .select("id, role, content, artifact_url, created_at")
+        .select("id, role, content, artifact_url, artifact_title, created_at")
         .eq("thread_id", thread_id)
         .order("created_at")
         .execute()
     )
     return res.data or []
+
+
+# ---------------------------------------------------------------------------
+# Cancel — abort a running agent loop
+# ---------------------------------------------------------------------------
+@router.post("/threads/{thread_id}/cancel", status_code=status.HTTP_204_NO_CONTENT)
+async def cancel_thread(thread_id: str, request: Request):
+    """Fire-and-forget cancel via navigator.sendBeacon (no auth header).
+
+    sendBeacon sends a plain POST with no Authorization header and the body as a
+    Blob, so we skip JWT auth and use the thread_id alone.  The agent loop
+    checks the cancelled flag each iteration and stops early.
+    """
+    supabase = get_supabase()
+    supabase.table("threads").update({"cancelled": True}).eq("id", thread_id).execute()
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -181,7 +197,8 @@ def chat(body: ChatBody, user: CurrentUser = Depends(get_current_user)):
     ).execute()
 
     new_credits = profile["credits"] - 1
-    supabase.table("profiles").update({"credits": new_credits}).eq(
+    lock_status = False if new_credits == 0 else True
+    supabase.table("profiles").update({"credits": new_credits, "unlocked": lock_status}).eq(
         "id", user.user_id
     ).execute()
 
@@ -193,7 +210,7 @@ def chat(body: ChatBody, user: CurrentUser = Depends(get_current_user)):
         final_message = run_agent(user.user_id, thread_id, active, client)
     except Exception as exc:
         logger.warning("Agent run failed for thread %s: %s", thread_id, exc)
-        supabase.table("profiles").update({"credits": profile["credits"] or 0}).eq(
+        supabase.table("profiles").update({"credits": profile["credits"], "unlocked": True}).eq(
             "id", user.user_id
         ).execute()
         raise HTTPException(

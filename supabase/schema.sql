@@ -34,6 +34,7 @@ create table if not exists threads (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references profiles(id) on delete cascade,
   title text not null default 'New chat',
+  cancelled boolean not null default false,
   created_at timestamptz default now()
 );
 
@@ -43,6 +44,7 @@ create table if not exists messages (
   role text not null,              -- 'user' | 'assistant' | 'tool_event'
   content text not null,           -- tool_event rows store a short JSON blob for UI display
   artifact_url text,               -- signed URL if a PDF was produced
+  artifact_title text,             -- clean display name for the PDF download button
   created_at timestamptz default now()
 );
 
@@ -71,6 +73,29 @@ create table if not exists stripe_events (
   id text primary key,             -- stripe event id (evt_...)
   processed_at timestamptz default now()
 );
+
+-- ---------------------------------------------------------------------------
+-- Storage bucket for PDF artifacts (PLAN.md §B1)
+-- Private bucket: objects are only reachable through the 7-day signed URLs the
+-- backend mints in app/storage.py. Equivalent to creating it by hand in
+-- Storage → New bucket (public = off).
+--
+-- Convenience only, and deliberately non-fatal: an existing bucket is left
+-- untouched, and if this role can't write storage.buckets we swallow it rather
+-- than aborting the rest of this script. The backend creates the bucket on
+-- first upload anyway if it's still missing.
+-- ---------------------------------------------------------------------------
+
+do $$
+begin
+  insert into storage.buckets (id, name, public)
+  values ('artifacts', 'artifacts', false)
+  on conflict (id) do nothing;
+exception
+  when insufficient_privilege or undefined_table then
+    raise notice 'Skipped creating the artifacts bucket; create it in Storage (private) if it does not exist.';
+end
+$$;
 
 -- ---------------------------------------------------------------------------
 -- Row Level Security

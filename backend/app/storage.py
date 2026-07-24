@@ -5,18 +5,46 @@ bucket and handed back to the user as a time-limited signed URL (7 days). The
 bucket is private, so the raw object path is never publicly reachable — only the
 signed URL is, and only until it expires.
 
-Human setup (one-time): Supabase dashboard → Storage → create a **private**
-bucket named `artifacts`.
+No manual setup needed: supabase/schema.sql creates the private bucket, and
+`_ensure_bucket` below creates it on first upload if that step was skipped.
 """
 
+import logging
+import re
 import uuid
 
 from app.supabase_client import get_supabase
+
+logger = logging.getLogger(__name__)
 
 BUCKET = "artifacts"
 
 # Signed-URL lifetime: 7 days, per PLAN.md §B1.
 SIGNED_URL_TTL_SECONDS = 7 * 24 * 60 * 60
+
+
+def _download_filename(title: str) -> str:
+    """Slugify the report title into the filename the browser will save as.
+
+    Stored objects are named with a uuid, so without this the user's download
+    lands as `9f3c…e1.pdf`.
+    """
+    slug = re.sub(r"[^a-z0-9]+", "-", (title or "").lower()).strip("-")
+    return f"{slug[:60] or 'micromanus-report'}.pdf"
+
+
+def _ensure_bucket(supabase) -> None:
+    """Create the private `artifacts` bucket if it doesn't exist yet.
+
+    supabase/schema.sql creates it, but that's a paste-it-yourself step — if it
+    was skipped, every report would fail with an opaque "Bucket not found".
+    Creating it here keeps a fresh deploy working with no manual Storage setup.
+    """
+    try:
+        supabase.storage.create_bucket(BUCKET, options={"public": False})
+        logger.info("Created missing private storage bucket %r", BUCKET)
+    except Exception as exc:  # already exists (raced or pre-existing) — fine
+        logger.info("Bucket %r not created (%s); assuming it exists", BUCKET, exc)
 
 
 def upload_pdf(user_id: str, data: bytes, title: str) -> str:
@@ -28,14 +56,26 @@ def upload_pdf(user_id: str, data: bytes, title: str) -> str:
     supabase = get_supabase()
     path = f"{user_id}/{uuid.uuid4().hex}.pdf"
 
-    supabase.storage.from_(BUCKET).upload(
-        path,
-        data,
-        {"content-type": "application/pdf"},
-    )
+    def _upload():
+        supabase.storage.from_(BUCKET).upload(
+            path,
+            data,
+            {"content-type": "application/pdf"},
+        )
+
+    try:
+        _upload()
+    except Exception:
+        # Most likely the bucket is missing; create it and retry once.
+        _ensure_bucket(supabase)
+        _upload()
 
     signed = supabase.storage.from_(BUCKET).create_signed_url(
-        path, SIGNED_URL_TTL_SECONDS
+        path,
+        SIGNED_URL_TTL_SECONDS,
+        # Sends Content-Disposition: attachment, so the chat button downloads a
+        # sensibly-named file instead of opening a uuid in a new tab.
+        options={"download": _download_filename(title)},
     )
     # supabase-py returns a dict; the key has varied across versions.
     url = signed.get("signedURL") or signed.get("signedUrl") or signed.get("signed_url")

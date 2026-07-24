@@ -249,7 +249,7 @@ Other endpoints: `GET /api/threads` (sidebar list), `GET /api/threads/{id}/messa
 
 ## B6. Stats / cost page
 
-`GET /api/stats` → per-thread aggregation from `usage_logs` joined to `threads`: thread title, model(s) used, total input/output/cached tokens, cost per category, total cost; plus grand totals. Frontend: a table (one row per thread, expandable or with columns for the token split) + summary cards (total spend, total tokens, chats count). A simple stacked bar per thread (input vs output vs cached cost) is a nice touch if time allows — recharts, optional.
+`GET /api/stats` → per-thread aggregation from `usage_logs` joined to `threads`: thread title, model(s) used, total input/output/cached tokens, cost per category, total cost; plus grand totals. Frontend: a table (one row per thread, expandable or with columns for the token split) + summary cards (total spend, total tokens, chats count).
 
 ## B7. Frontend structure (React, JavaScript, Vite, Tailwind)
 

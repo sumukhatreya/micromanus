@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from './lib/AuthContext'
 import RequireAuth from './components/RequireAuth'
@@ -26,10 +27,12 @@ function EntryRedirect({ children }) {
 }
 
 function AppLayout() {
+  const [agentRunning, setAgentRunning] = useState(false)
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
-      <NavBar />
-      <Outlet />
+      <NavBar disabled={agentRunning} />
+      <Outlet context={{ agentRunning, setAgentRunning }} />
     </div>
   )
 }
