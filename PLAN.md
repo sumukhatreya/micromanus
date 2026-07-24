@@ -38,9 +38,9 @@ Decisions locked in:
 1. **Install:** `npm install -g @anthropic-ai/claude-code`, then run `claude` in a terminal and log in when prompted (Claude subscription or API billing).
 2. **Create the repo:**
    ```bash
-   # on github.com: create empty repo "micromanus" (private is fine until submission)
-   git clone https://github.com/<you>/micromanus.git
-   cd micromanus
+   # on github.com: create empty repo "minimus" (private is fine until submission)
+   git clone https://github.com/<you>/minimus.git
+   cd minimus
    ```
 3. **Seed the repo with context:** copy THIS file into the repo as `PLAN.md`. Then create `CLAUDE.md` at the repo root containing:
    ```
