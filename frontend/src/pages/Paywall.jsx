@@ -136,7 +136,7 @@ export default function Paywall() {
             onSubmit={handleRedeem}
             className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
           >
-            <h2 className="font-medium">Have a coupon?</h2>
+            <h2 className="font-medium">Enter coupon USE_MINIMUS</h2>
             <p className="mt-1 text-sm text-gray-500">
               Enter your code to unlock instantly.
             </p>
