@@ -30,7 +30,7 @@ def _download_filename(title: str) -> str:
     lands as `9f3c…e1.pdf`.
     """
     slug = re.sub(r"[^a-z0-9]+", "-", (title or "").lower()).strip("-")
-    return f"{slug[:60] or 'micromanus-report'}.pdf"
+    return f"{slug[:60] or 'minimus-report'}.pdf"
 
 
 def _ensure_bucket(supabase) -> None:

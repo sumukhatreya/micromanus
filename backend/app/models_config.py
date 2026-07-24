@@ -136,3 +136,18 @@ def get_pricing(provider: str, model: str) -> dict | None:
         if m["id"] == model:
             return m["price"]
     return None
+
+
+def find_model(model: str) -> dict | None:
+    """Look a model up by id alone (provider not known).
+
+    usage_logs stores only the model id, so the stats page (PLAN.md §B6) needs
+    to recover a model's label + pricing from that id. Model ids are unique
+    across providers in this config, so the first match is unambiguous.
+    Returns {provider, label, price} or None if the id is unknown.
+    """
+    for provider, p in PROVIDERS.items():
+        for m in p["models"]:
+            if m["id"] == model:
+                return {"provider": provider, "label": m["label"], "price": m["price"]}
+    return None

@@ -1,4 +1,4 @@
--- MicroManus — database schema (PLAN.md §B1)
+-- Minimus — database schema (PLAN.md §B1)
 -- Paste this into the Supabase SQL editor and run once.
 --
 -- Design notes:
@@ -41,7 +41,7 @@ create table if not exists threads (
 create table if not exists messages (
   id uuid primary key default gen_random_uuid(),
   thread_id uuid references threads(id) on delete cascade,
-  role text not null,              -- 'user' | 'assistant' | 'tool_event'
+  role text not null,              -- 'user' | 'assistant' | 'tool_event' | 'error'
   content text not null,           -- tool_event rows store a short JSON blob for UI display
   artifact_url text,               -- signed URL if a PDF was produced
   artifact_title text,             -- clean display name for the PDF download button

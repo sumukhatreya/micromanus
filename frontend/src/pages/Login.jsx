@@ -20,7 +20,7 @@ export default function Login() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="text-center text-2xl font-semibold text-gray-900">MicroManus</h1>
+        <h1 className="text-center text-2xl font-semibold text-gray-900">Minimus</h1>
         <p className="mt-2 text-center text-sm text-gray-500">
           Your deep-research AI agent. Sign in to get started.
         </p>

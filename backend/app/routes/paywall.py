@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["paywall"])
 
 # The one valid coupon (PLAN.md §A5/§B3). Compared exactly, server-side.
-COUPON_CODE = "SID_DRDROID"
+COUPON_CODE = "USE_MINIMUS"
 
 # Credits granted per unlock.
 UNLOCK_CREDITS = 5
@@ -105,7 +105,7 @@ def create_checkout_session(user: CurrentUser = Depends(get_current_user)):
                     "price_data": {
                         "currency": "usd",
                         "unit_amount": 500,  # $5.00 in cents
-                        "product_data": {"name": "MicroManus — 5 credits"},
+                        "product_data": {"name": "Minimus — 5 credits"},
                     },
                     "quantity": 1,
                 }

@@ -272,7 +272,7 @@ export default function Chat() {
                   What do you want to research?
                 </p>
                 <p className="mt-1 text-sm">
-                  Ask a question and MicroManus will search the web, cite its
+                  Ask a question and Minimus will search the web, cite its
                   sources, and can produce a downloadable PDF report.
                 </p>
               </div>
@@ -286,7 +286,7 @@ export default function Chat() {
               <div className="flex justify-start">
                 <span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-500">
                   <span className="h-2 w-2 animate-pulse rounded-full bg-gray-400" />
-                  MicroManus is working…
+                  Minimus is working…
                 </span>
               </div>
             )}

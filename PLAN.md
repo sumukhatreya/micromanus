@@ -1,4 +1,4 @@
-# MicroManus — Execution Plan
+# Minimus — Execution Plan
 
 Deep-research AI agent web app with usage-based billing. Built with FastAPI (Python) + React (JavaScript, not TS). This document is the single source of truth: Part A is for the human (accounts, workflow, testing), Part B is the technical spec to be executed by Claude Code.
 
@@ -81,7 +81,7 @@ The assignment disqualifies broken submissions, so this list IS the deliverable:
 
 1. Open the Vercel URL in an incognito window → land on signup → GitHub login works.
 2. Immediately after signup you hit a **paywall**. You cannot reach chat by URL-hacking (`/chat` redirects back to paywall).
-3. Coupon `SID_DRDROID` unlocks and shows **5 credits**. (Test with account #1.)
+3. Coupon `USE_MINIMUS` unlocks and shows **5 credits**. (Test with account #1.)
 4. Stripe path: test card `4242 4242 4242 4242` → payment succeeds → 5 credits. (Test with account #2 — each account should exercise one path.)
 5. Wrong coupon shows an error; paying/redeeming twice doesn't stack weirdly.
 6. Add an API key: pick provider + model, paste key → save succeeds; a bad key shows a clear error on first chat, not a crash.
@@ -194,8 +194,8 @@ Notes for the agent:
 ## B3. Paywall (coupon + Stripe test mode)
 
 Endpoints:
-- `POST /api/paywall/redeem-coupon {code}` → if code === `SID_DRDROID` (exact, compare server-side) and user not already unlocked → set `unlocked=true, unlock_method='coupon', credits=5`, insert redemption row. Errors: wrong code (400 "Invalid coupon"), already unlocked (409).
-- `POST /api/paywall/create-checkout-session` → Stripe Checkout Session, test mode: `mode='payment'`, line item $5.00 USD "MicroManus — 5 credits", `client_reference_id=user_id`, success/cancel URLs back to the frontend. Return the session URL; frontend redirects.
+- `POST /api/paywall/redeem-coupon {code}` → if code === `USE_MINIMUS` (exact, compare server-side) and user not already unlocked → set `unlocked=true, unlock_method='coupon', credits=5`, insert redemption row. Errors: wrong code (400 "Invalid coupon"), already unlocked (409).
+- `POST /api/paywall/create-checkout-session` → Stripe Checkout Session, test mode: `mode='payment'`, line item $5.00 USD "Minimus — 5 credits", `client_reference_id=user_id`, success/cancel URLs back to the frontend. Return the session URL; frontend redirects.
 - `POST /api/stripe/webhook` → verify signature with `STRIPE_WEBHOOK_SECRET`, handle `checkout.session.completed`: set `unlocked=true, unlock_method='stripe', credits += 5`. Idempotent (check unlock state / store processed session id). This route is UNauthenticated (Stripe calls it) — signature verification is its auth.
 - Frontend paywall page: two cards — "Have a coupon?" input + "Pay $5" button. After success, show "5 credits added" and route to chat.
 - Human setup: Stripe dashboard (test mode) → Developers → Webhooks → add endpoint `https://<backend>/api/stripe/webhook`, event `checkout.session.completed`, copy signing secret to backend env. For local testing use `stripe listen --forward-to localhost:8000/api/stripe/webhook` (Stripe CLI).
@@ -241,7 +241,7 @@ Tools (OpenAI function-calling format):
 1. `web_search(query: str)` → Tavily API (`tavily-python`), return top 5 results as `[{title, url, snippet/content}]` JSON string. Instruct the model in the system prompt to cite source URLs in answers.
 2. `create_pdf_report(title: str, markdown_content: str)` → render markdown to PDF (WeasyPrint via `markdown` lib → HTML → PDF; fallback ReportLab if WeasyPrint's system deps annoy the host — check Railway supports WeasyPrint's libpango deps, else use `fpdf2`+`markdown-it` or ReportLab). Upload to Supabase Storage `artifacts/`, create signed URL, set `artifact_url` on the final assistant message, return the URL to the model so it can mention it.
 
-System prompt (agent: write ~15 lines): you are MicroManus, a deep-research agent; decompose questions; search multiple times with refined queries before answering; synthesize with citations; call create_pdf_report when the user asks for a report/document; be concise otherwise.
+System prompt (agent: write ~15 lines): you are Minimus, a deep-research agent; decompose questions; search multiple times with refined queries before answering; synthesize with citations; call create_pdf_report when the user asks for a report/document; be concise otherwise.
 
 API response to frontend: the final assistant message + artifact_url + the ordered list of tool_events (so the UI can show "🔍 Searched: california wildfires 2026" steps). Streaming is NOT required — acceptable UX: optimistic user bubble, then a live-ish activity area. Implementation: simplest robust option is the frontend polling `GET /api/threads/{id}/messages` every 1.5 s while a run is active (tool_event rows appear as the loop persists them), stopping when the final assistant message lands. (If the agent proposes SSE and it works, fine — but don't sink time into it.)
 

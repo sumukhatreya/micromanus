@@ -113,7 +113,7 @@ export default function Paywall() {
 
   return (
       <main className="mx-auto max-w-2xl px-6 py-16">
-        <h1 className="text-2xl font-semibold">Unlock MicroManus</h1>
+        <h1 className="text-2xl font-semibold">Unlock Minimus</h1>
         <p className="mt-2 text-gray-500">
           Get <span className="font-medium text-gray-900">5 credits</span> to start
           researching. Redeem a coupon or pay $5 (test mode).

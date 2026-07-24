@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 MAX_ITER = 10
 
 SYSTEM_PROMPT = """\
-You are MicroManus, a deep-research AI agent. Your job is to answer the user's \
+You are Minimus, a deep-research AI agent. Your job is to answer the user's \
 question thoroughly and accurately using live web research.
 
 Method:

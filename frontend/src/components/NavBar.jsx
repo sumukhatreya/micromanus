@@ -13,7 +13,7 @@ export default function NavBar({ disabled }) {
   return (
     <header className="border-b border-gray-200 bg-white">
       <nav className="mx-auto flex max-w-4xl items-center gap-4 px-6 py-4 text-sm">
-        <span className="font-semibold">MicroManus</span>
+        <span className="font-semibold">Minimus</span>
         {profile?.unlocked && (
           <div className="flex gap-3 text-gray-500">
             <Link className={linkClass('/chat')} to="/chat" tabIndex={disabled ? -1 : undefined} aria-disabled={disabled || undefined}>Chat</Link>
